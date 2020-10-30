@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="container">
+        <svg id="chart"></svg>
+    </div>
+    <button onclick="loop()">Play</button> 
+    <script>
+        let MatchData ;
+        fetch('./data.json').then(res=>res.json()).then(d => {
+            MatchData = d;
+            plotChart(MatchData) 
+        })
+
+        function plotChart(data) {
+            console.log(data); 
+            const width = 900, height = 700
+            const svg = d3.select('#chart')
+                            .attr('width', width +'px')
+                            .attr('height', height + 'px');
+
+            const innerRadius = 200;
+            const outerRadius = Math.min(width, height) / 2 ;
+            const g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")"); 
+
+            const xScale = d3.scaleBand()
+                        .range([0, 2 * Math.PI ])
+                        .align(0)
+                        .domain(data.map(d => d.matchno))
+
+            const yScale = d3.scaleRadial()
+                    .range([innerRadius, outerRadius])
+                    .domain([0, d3.max(data, d => d.DTP + d.diff)])
+                
+            const zScale = d3.scaleOrdinal()
+                            .range(['#AA0000', '#00AA00'])
+                            .domain(data.map(({difference, dreamPoints}) => ({difference, dreamPoints})))
+
+            
+            const dreampoints = g.append('g')
+                .attr('class', 'dreampoints')
+                .selectAll('path.dp')
+                .data(data)
+                .enter()
+                .append('path')
+                    .attr('class',(d,i) => 'dp dreampoints_match'+(i+1))
+                    .style('cursor', 'none')
+                    // .attr('fill', '#2196f3')
+                    .attr('fill', 'none')
+                    .attr('d', d3.arc()
+                                .innerRadius(innerRadius)
+                                .outerRadius(d => yScale(d.DTP - d.diff))
+                                .startAngle(d => xScale(d.matchno))
+                                .endAngle(d => xScale(d.matchno) + xScale.bandwidth())
+                                .padAngle(0.01)
+                                .padRadius(innerRadius)
+                        ) 
+                
+            const differences = g.append('g')
+                .attr('class', 'differences')
+                .selectAll('path.diff')
+                .data(data)
+                .enter()
+                .append('path')
+                    .attr('class',(d,i) => 'diff differences_match'+(i+1))
+                    // .attr('fill', '#e91e63')
+                    .attr('fill', 'none')
+                    .style('cursor', 'none')
+                    .attr('d', d3.arc()
+                                .innerRadius(d => yScale(d.DTP - d.diff))
+                                .outerRadius(d => yScale(d.DTP))
+                                .startAngle(d => xScale(d.matchno))
+                                .endAngle(d => xScale(d.matchno) + xScale.bandwidth())
+                                .padAngle(0.01)
+                                .padRadius(innerRadius)
+                        ) 
+            const xAxis = g => g
+                .attr("text-anchor", "middle")
+                .style('transform', `translate(${width/2}px,${height/2}px)`)
+                .call(g => g.selectAll("g")
+                .data(data)
+                .join("g")
+                    .attr("transform", d => `
+                    rotate(${((xScale(d.matchno) + xScale.bandwidth() / 2) * 180 / Math.PI - 90)})
+                    translate(${innerRadius},0)
+                    `)
+                    .call(g => g.append("line")
+                        .attr("x2", -5)
+                        .attr("stroke", "#000"))
+                    .call(g => {
+                        g.append("text") 
+                                .attr("transform", d => (xScale(d.matchno) + xScale.bandwidth() / 2 + Math.PI / 2) % (2 * Math.PI) < Math.PI
+                                                ? "rotate(90)translate(0,16)"
+                                                : "rotate(-90)translate(0,-9)")
+                                .text(d => d.matchno)
+                                .style('font-size', '10px')
+                                
+                        // g.append("text") 
+                        //         .attr('class', d => d.matchno + 'text')
+                        //         .attr("transform", d => (xScale(d.matchno) + xScale.bandwidth() / 2 + Math.PI / 2) % (2 * Math.PI) < Math.PI
+                        //                         ? `rotate(90)translate(24,${yScale(d.DTP)})`
+                        //                         : `rotate(-90)translate(-24,-${yScale(d.DTP)})`)
+                        //         .text(d => d.diff)
+                        //         .style('font-size', '10px')
+                            })
+                        )
+            svg.append("g").call(xAxis)
+            
+            const yAxis = g => g
+                    .attr('class', 'yaxis')
+                    .attr("text-anchor", "middle")
+                    .style('transform', `translate(${width/2}px,${height/2}px)`)
+                    // .call(g => g.append("text")
+                    //     .attr("y", d => -yScale(yScale.ticks(5).pop()))
+                    //     .attr("dy", "-1em")
+                    //     .text("Population"))
+                    .call(g => g.selectAll("g")
+                    .data(yScale.ticks(5).slice(1))
+                    .join("g")
+                        .attr("fill", "none")
+                        .call(g => g.append("circle")
+                            .attr("stroke", '#0000ff6b')
+                            .attr("stroke-opacity", 0.5)
+                            .attr("r", yScale))
+                        .call(g => g.append("text")
+                            .attr("y", d => -yScale(d))
+                            .attr("dy", "0.35em")
+                            .attr("stroke", "#fff")
+                            .attr("stroke-width", 5)
+                            .style('font-size', '10px')
+                            .text(yScale.tickFormat(4))
+                        .clone(true)
+                            .attr("fill", "#000")
+                            .attr("stroke", "none")))
+            svg.append("g").call(yAxis)
+
+
+
+            // Center Text
+            
+            // matchNo: 1,
+            // difference: 244.5,
+            // dreamPoints: 814.5,
+            // playersInDreamTeam: 5,
+            // top2Perf: 1,
+            // top5Perf: 2,
+            // teams: ['CSK', 'SHR'] 
+
+            const centerInfo = g.append('g')
+                .classed('centerInfo', true) 
+    
+            const matchTeams = centerInfo
+                                .append('text')
+                                .classed('matchTeams', true)
+                                .attr('text-anchor', 'middle')
+                                .attr('y', -50)
+                                .attr('font-size', 'x-large')
+                                .attr('font-weight', 600) 
+
+            const playersInDreamTeam = centerInfo
+                                    .append('text')
+                                    .classed('playersInDreamTeam', true)
+                                    .attr('text-anchor', 'middle')
+                                    .attr('y', -25) 
+                                    .html(`Players in Dream Team : <tspan id='pidt'></tspan>`)
+
+            const points = centerInfo
+                                .append('text')
+                                .classed('points', true)
+                                .attr('text-anchor', 'middle') 
+                                .html(`Dream Points <tspan id='dp'></tspan> - Difference <tspan id='diff'></tspan>`)
+
+            const CLLTP = centerInfo
+                                .append('text')
+                                .classed('CLLTP', true)
+                                .attr('text-anchor', 'middle')
+                                .attr('y', 25) 
+                                .html(`CLL TP  <tspan></tspan>`)
+            
+            const onHover =() => {
+                const matchData = event.target.__data__;
+                matchTeams.text(`${matchData.teams}`)
+                
+                playersInDreamTeam.select('#pidt').text(`${matchData.inDreamTeam.Players[0].name.split(',').length}`)
+                points.select('tspan#dp').text(`${matchData.DTP}`)
+                points.select('tspan#diff').text(`${matchData.diff}`)
+                CLLTP.select('tspan').text(`${matchData.CLLTP} `)
+                
+                d3.select(`g.differences .differences_match${matchData.matchno}`).attr('fill','#f44336')
+                d3.select(`g.dreampoints .dreampoints_match${matchData.matchno}`).attr('fill','#3f51b5')
+            }
+            const onOut = () => {
+                const matchData = event.target.__data__;
+                d3.select(`g.differences .differences_match${matchData.matchno}`)
+                    // .attr('fill','#e91e63')
+                    .attr('fill','none')
+                d3.select(`g.dreampoints .dreampoints_match${matchData.matchno}`)
+                    // .attr('fill','#2196f3') 
+                    .attr('fill','none')
+            }
+            dreampoints.on('mouseover', onHover).on('mouseout', onOut)
+            differences.on('mouseover', onHover).on('mouseout', onOut)
+ 
+        }
+
+        async function loop() {
+            const noOfTimes = MatchData.length;
+            for (let i = 1; i < noOfTimes; i++) {
+                const element = d3.select('.dreampoints_match'+i).node()
+                const mouseoverEvent = new Event('mouseover');
+                element.dispatchEvent(mouseoverEvent);  
+                await sleep(500)
+                // const mouseoutEvent = new Event('mouseout');
+                // element.dispatchEvent(mouseoutEvent);  
+            }
+
+        } 
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+
+</html>
