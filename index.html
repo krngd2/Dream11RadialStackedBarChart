@@ -23,12 +23,13 @@
 
         function plotChart(data) {
             console.log(data); 
+            data=data.filter((v,i) => v.DTP !== null);
             const width = 900, height = 700
             const svg = d3.select('#chart')
                             .attr('width', width +'px')
                             .attr('height', height + 'px');
 
-            const innerRadius = 200;
+            const innerRadius = 160;
             const outerRadius = Math.min(width, height) / 2 ;
             const g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")"); 
 
@@ -72,6 +73,7 @@
                 .enter()
                 .append('path')
                     .attr('class',(d,i) => 'diff differences_match'+(i+1))
+                    .attr('id',(d,i) => 'differences_match'+(i+1))
                     // .attr('fill', '#e91e63')
                     .attr('fill', 'none')
                     .style('cursor', 'none')
@@ -83,6 +85,22 @@
                                 .padAngle(0.01)
                                 .padRadius(innerRadius)
                         ) 
+            
+            const playerCounts = g.select('.differences')
+                .selectAll('text.pc')
+                .data(data)
+                .enter()
+                .append('text')
+                .attr('visibility', 'hidden') 
+                .attr("x", 12) //Move the text from the start angle of the arc
+                .attr('class', (d,i) => 'pc points_match'+(i+1))
+                .append("textPath")
+                .attr("font-size", 22)
+                .attr('xlink:href',(d,i) => '#differences_match'+(i+1)) //place the ID of the path here
+                .html((d) => {
+                    return d.inDreamTeam.noOfPlayers;
+                });
+
             const xAxis = g => g
                 .attr("text-anchor", "middle")
                 .style('transform', `translate(${width/2}px,${height/2}px)`)
@@ -128,7 +146,7 @@
                     .join("g")
                         .attr("fill", "none")
                         .call(g => g.append("circle")
-                            .attr("stroke", '#0000ff6b')
+                            .attr("stroke", '#004369')
                             .attr("stroke-opacity", 0.5)
                             .attr("r", yScale))
                         .call(g => g.append("text")
@@ -162,47 +180,80 @@
                                 .append('text')
                                 .classed('matchTeams', true)
                                 .attr('text-anchor', 'middle')
-                                .attr('y', -50)
+                                .attr('y', -30)
                                 .attr('font-size', 'x-large')
                                 .attr('font-weight', 600) 
 
-            const playersInDreamTeam = centerInfo
+            const playersCountDreamTeam = centerInfo
                                     .append('text')
-                                    .classed('playersInDreamTeam', true)
+                                    .classed('playersCountDreamTeam', true)
                                     .attr('text-anchor', 'middle')
-                                    .attr('y', -25) 
+                                    .attr('font-size', '20')
+                                    .attr('y', -5) 
                                     .html(`Players in Dream Team : <tspan id='pidt'></tspan>`)
 
-            const points = centerInfo
-                                .append('text')
-                                .classed('points', true)
-                                .attr('text-anchor', 'middle') 
-                                .html(`Dream Points <tspan id='dp'></tspan> - Difference <tspan id='diff'></tspan>`)
+            // const points = centerInfo
+            //                     .append('text')
+            //                     .classed('points', true)
+            //                     .attr('text-anchor', 'middle') 
+            //                     .attr('y', 20) 
+            //                     .html(`Dream Points <tspan id='dp' style='color: #004369'></tspan> - Difference <tspan id='diff'></tspan>`)
 
-            const CLLTP = centerInfo
-                                .append('text')
-                                .classed('CLLTP', true)
-                                .attr('text-anchor', 'middle')
-                                .attr('y', 25) 
-                                .html(`CLL TP  <tspan></tspan>`)
+            // const CLLTP = centerInfo
+            //                     .append('text')
+            //                     .classed('CLLTP', true)
+            //                     .attr('text-anchor', 'middle')
+            //                     .attr('y', 45) 
+            //                     .html(`CLL TP  <tspan></tspan>`)
             
+            const playersInDreamTeam = centerInfo
+                                .append('foreignObject')
+                                .attr('x', -100) 
+                                .attr('y', 5) 
+                                .classed('playersInDreamTeam', true)
+                                .attr("width", 200)
+                                .attr("height", 100)
+                                .append("xhtml:body")
+                                .html(`<div id='playersInDreamTeam'></div>`)
+
+
             const onHover =() => {
                 const matchData = event.target.__data__;
-                matchTeams.text(`${matchData.teams}`)
+                matchTeams.text(`${matchData.teams}`);
+                playersCountDreamTeam.select('#pidt').text(`${matchData.inDreamTeam.Players[0].name.split(',').length}`)
+
+                //Logic to display players
+                let playerPoints=[];
+                const players=matchData.inDreamTeam.Players[0].name.split(',');
+                const points=matchData.inDreamTeam.Players[0].points.split(',');
+                players.forEach((value,index) => {
+                    playerPoints.push({
+                        'name':value.trim(),
+                        'points': Number(points[index].trim())
+                    });
+                });
+                playerPoints=playerPoints.sort((a, b) => b.points - a.points);
+                let output='';
+                playerPoints.forEach((value,index) => {
+                    output+='<div style="text-align: center"><span style="color: #01949A">'+value.name+'</span> - <span style="color: #DB1F48">'+value.points+'</span></div>';
+                });
+                playersInDreamTeam.select('#playersInDreamTeam').html(output);
+
+                // points.select('tspan#dp').text(`${matchData.DTP}`)
+                // points.select('tspan#diff').text(`${matchData.diff}`)
+                // CLLTP.select('tspan').text(`${matchData.CLLTP} `)
                 
-                playersInDreamTeam.select('#pidt').text(`${matchData.inDreamTeam.Players[0].name.split(',').length}`)
-                points.select('tspan#dp').text(`${matchData.DTP}`)
-                points.select('tspan#diff').text(`${matchData.diff}`)
-                CLLTP.select('tspan').text(`${matchData.CLLTP} `)
-                
-                d3.select(`g.differences .differences_match${matchData.matchno}`).attr('fill','#f44336')
-                d3.select(`g.dreampoints .dreampoints_match${matchData.matchno}`).attr('fill','#3f51b5')
+                d3.select(`g.differences .differences_match${matchData.matchno}`).attr('fill','#E5DDC8')
+                d3.select(`g.differences .points_match${matchData.matchno}`).attr('visibility','visible')
+                d3.select(`g.dreampoints .dreampoints_match${matchData.matchno}`).attr('fill','#01949A')
             }
             const onOut = () => {
                 const matchData = event.target.__data__;
                 d3.select(`g.differences .differences_match${matchData.matchno}`)
                     // .attr('fill','#e91e63')
                     .attr('fill','none')
+                d3.select(`g.differences .points_match${matchData.matchno}`)
+                    .attr('visibility','hidden')
                 d3.select(`g.dreampoints .dreampoints_match${matchData.matchno}`)
                     // .attr('fill','#2196f3') 
                     .attr('fill','none')
