@@ -13,6 +13,8 @@
     <div id="container">
         <svg id="chart"></svg>
     </div>
+    <label for="speedRange">Ticker Speed</label>
+    <input type="range" id="speedRange" min="0" max="2000" step="50" value="500" (change)="">
     <button onclick="loop()">Play</button> 
     <script>
         let MatchData ;
@@ -192,12 +194,12 @@
                                     .attr('y', -5) 
                                     .html(`Players in Dream Team : <tspan id='pidt'></tspan>`)
 
-            // const points = centerInfo
-            //                     .append('text')
-            //                     .classed('points', true)
-            //                     .attr('text-anchor', 'middle') 
-            //                     .attr('y', 20) 
-            //                     .html(`Dream Points <tspan id='dp' style='color: #004369'></tspan> - Difference <tspan id='diff'></tspan>`)
+            const pointsDifference = centerInfo
+                                .append('text')
+                                .classed('points', true)
+                                .attr('text-anchor', 'middle') 
+                                .attr('y', 15) 
+                                .html(`Points Difference : <tspan id='diff'></tspan>`)
 
             // const CLLTP = centerInfo
             //                     .append('text')
@@ -209,7 +211,7 @@
             const playersInDreamTeam = centerInfo
                                 .append('foreignObject')
                                 .attr('x', -100) 
-                                .attr('y', 5) 
+                                .attr('y', 15) 
                                 .classed('playersInDreamTeam', true)
                                 .attr("width", 200)
                                 .attr("height", 100)
@@ -240,7 +242,7 @@
                 playersInDreamTeam.select('#playersInDreamTeam').html(output);
 
                 // points.select('tspan#dp').text(`${matchData.DTP}`)
-                // points.select('tspan#diff').text(`${matchData.diff}`)
+                pointsDifference.select('tspan#diff').text(`${matchData.diff}`)
                 // CLLTP.select('tspan').text(`${matchData.CLLTP} `)
                 
                 d3.select(`g.differences .differences_match${matchData.matchno}`).attr('fill','#E5DDC8')
@@ -264,12 +266,13 @@
         }
 
         async function loop() {
+            const speed=Number(document.getElementById("speedRange").value);
             const noOfTimes = MatchData.length;
             for (let i = 1; i < noOfTimes; i++) {
                 const element = d3.select('.dreampoints_match'+i).node()
                 const mouseoverEvent = new Event('mouseover');
                 element.dispatchEvent(mouseoverEvent);  
-                await sleep(500)
+                await sleep(speed)
                 // const mouseoutEvent = new Event('mouseout');
                 // element.dispatchEvent(mouseoutEvent);  
             }
