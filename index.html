@@ -94,10 +94,10 @@
                 .enter()
                 .append('text')
                 .attr('visibility', 'hidden') 
-                .attr("x", 12) //Move the text from the start angle of the arc
+                .attr("x", 10) //Move the text from the start angle of the arc
                 .attr('class', (d,i) => 'pc points_match'+(i+1))
                 .append("textPath")
-                .attr("font-size", 22)
+                .attr("font-size", 21)
                 .attr('xlink:href',(d,i) => '#differences_match'+(i+1)) //place the ID of the path here
                 .html((d) => {
                     return d.inDreamTeam.noOfPlayers;
